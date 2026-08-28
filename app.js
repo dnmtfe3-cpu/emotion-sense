@@ -1,17 +1,40 @@
-// Emotion Sense bootstrap estável, sem splash.
-// Auth carrega primeiro. O polimento visual vem depois e não interfere no cadastro/login.
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=11').then(reg => reg.update()).catch(console.error);
-}
+// Emotion Sense bootstrap estável.
+// O núcleo interativo carrega primeiro para que nenhum botão fique sem função.
+(async function boot() {
+  try {
+    await import('./app-core.js?v=12');
+  } catch (error) {
+    console.error('Emotion Sense core error', error);
+    showFatal('Não consegui carregar as funções do app. Recarregue a página.');
+    return;
+  }
 
-import('./app-main.js?v=11')
-  .then(() => import('./polish.js?v=11').catch(error => console.error('Emotion Sense polish error', error)))
-  .catch(error => {
-    console.error('Emotion Sense critical bootstrap error', error);
+  try {
+    await import('./app-main.js?v=12');
+  } catch (error) {
+    console.error('Emotion Sense auth error', error);
+    // O núcleo continua funcionando mesmo se a sincronização falhar.
     document.body.classList.remove('es-gate');
     document.getElementById('es-auth-root')?.remove();
-    document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-    document.getElementById('screen-inicio')?.classList.add('active');
-    const nav = document.getElementById('bottom-nav');
-    if (nav) nav.style.display = 'flex';
-  });
+    window.switchTab?.('screen-inicio');
+    showNonBlockingNotice('Modo local ativo. A sincronização da conta não carregou agora.');
+  }
+})();
+
+function showFatal(message) {
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.innerHTML = `<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#F8F8FC;color:#242438;text-align:center"><div><img src="icon.svg" alt="Emotion Sense" style="width:82px;height:82px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#747486;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#5B57D9;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
+}
+
+function showNonBlockingNotice(message) {
+  let toast = document.getElementById('boot-notice');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'boot-notice';
+    toast.style.cssText = 'position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);background:#242438;color:#fff;padding:10px 14px;border-radius:12px;font:600 11px/1.35 DM Sans,system-ui,sans-serif;box-shadow:0 10px 30px rgba(20,20,40,.18);text-align:center';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  setTimeout(() => toast.remove(), 4200);
+}

@@ -1,5 +1,5 @@
 // Emotion Sense bootstrap sem splash visual.
-// Carrega primeiro a camada de experiência e depois a lógica principal.
+// Carrega a experiência, a lógica principal e o polimento visual da Home.
 const noSplashStyle = document.createElement('style');
 noSplashStyle.textContent = `
   .es-splash{display:none!important}
@@ -7,5 +7,6 @@ noSplashStyle.textContent = `
 `;
 document.head.appendChild(noSplashStyle);
 
-await import('./experience.js?v=8');
-await import('./app-main.js?v=8');
+await import('./experience.js?v=9');
+await import('./app-main.js?v=9');
+await import('./polish.js?v=9');

@@ -1,15 +1,11 @@
-// Emotion Sense bootstrap sem splash.
-// O núcleo abre primeiro; melhorias visuais são opcionais e nunca podem causar tela branca.
-import('./app-main.js?v=10')
-  .then(async () => {
-    const extras = await Promise.allSettled([
-      import('./experience.js?v=10'),
-      import('./polish.js?v=10')
-    ]);
-    extras.forEach(result => {
-      if (result.status === 'rejected') console.error('Emotion Sense extra module error', result.reason);
-    });
-  })
+// Emotion Sense bootstrap estável, sem splash.
+// Auth carrega primeiro. O polimento visual vem depois e não interfere no cadastro/login.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js?v=11').then(reg => reg.update()).catch(console.error);
+}
+
+import('./app-main.js?v=11')
+  .then(() => import('./polish.js?v=11').catch(error => console.error('Emotion Sense polish error', error)))
   .catch(error => {
     console.error('Emotion Sense critical bootstrap error', error);
     document.body.classList.remove('es-gate');

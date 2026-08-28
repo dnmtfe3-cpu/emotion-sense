@@ -11,8 +11,7 @@
   "background_color":"#FAF9FC",
   "theme_color":"#6945E6",
   "icons":[
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"}
   ],
   "shortcuts":[
     {"name":"Sense Scan","short_name":"Scan","description":"Abrir a análise facial","url":"./?shortcut=scan","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"}]},

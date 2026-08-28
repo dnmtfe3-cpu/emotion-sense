@@ -1,5 +1,9 @@
-const CACHE='emotion-sense-shell-v11';
-const ASSETS=['./','./index.html','./styles.css?v=11','./app.js?v=11','./app-main.js?v=11','./polish.js?v=11','./app-core.js?v=10','./manifest.webmanifest'];
+const CACHE='emotion-sense-shell-v13';
+const ASSETS=[
+  './','./index.html','./styles.css?v=11','./brand.css?v=13','./app.js?v=13',
+  './app-main.js?v=13','./app-core.js?v=13','./cohesion.js?v=13','./manifest.webmanifest',
+  './icon.svg','./logo.svg','./favicon.ico','./apple-touch-icon.png','./icon-192.png'
+];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -16,13 +20,12 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET') return;
   const url=new URL(event.request.url);
-  if(url.origin===self.location.origin){
-    event.respondWith(
-      fetch(event.request,{cache:'no-store'}).then(response=>{
-        const copy=response.clone();
-        caches.open(CACHE).then(cache=>cache.put(event.request,copy));
-        return response;
-      }).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('./index.html')))
-    );
-  }
+  if(url.origin!==self.location.origin) return;
+  event.respondWith(
+    fetch(event.request,{cache:'no-store'}).then(response=>{
+      const copy=response.clone();
+      caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+      return response;
+    }).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('./index.html')))
+  );
 });

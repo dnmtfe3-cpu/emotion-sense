@@ -1,40 +1,58 @@
 // Emotion Sense bootstrap estável.
-// O núcleo interativo carrega primeiro para que nenhum botão fique sem função.
-(async function boot() {
-  try {
-    await import('./app-core.js?v=12');
-  } catch (error) {
-    console.error('Emotion Sense core error', error);
+// Identidade visual é carregada sem interferir na lógica dos botões.
+prepareBrand();
+
+(async function boot(){
+  try{
+    await import('./app-core.js?v=13');
+  }catch(error){
+    console.error('Emotion Sense core error',error);
     showFatal('Não consegui carregar as funções do app. Recarregue a página.');
     return;
   }
 
-  try {
-    await import('./app-main.js?v=12');
-  } catch (error) {
-    console.error('Emotion Sense auth error', error);
-    // O núcleo continua funcionando mesmo se a sincronização falhar.
+  try{
+    await import('./app-main.js?v=13');
+  }catch(error){
+    console.error('Emotion Sense auth error',error);
     document.body.classList.remove('es-gate');
     document.getElementById('es-auth-root')?.remove();
     window.switchTab?.('screen-inicio');
     showNonBlockingNotice('Modo local ativo. A sincronização da conta não carregou agora.');
   }
+
+  import('./cohesion.js?v=13').catch(error=>console.error('Emotion Sense UI extras error',error));
 })();
 
-function showFatal(message) {
-  const app = document.getElementById('app');
-  if (!app) return;
-  app.innerHTML = `<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#F8F8FC;color:#242438;text-align:center"><div><img src="icon.svg" alt="Emotion Sense" style="width:82px;height:82px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#747486;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#5B57D9;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
+function prepareBrand(){
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content='#6945E6';
+  addHeadLink('stylesheet','./brand.css?v=13','es-brand-css');
+  addHeadLink('icon','./favicon.ico','es-favicon');
+  addHeadLink('apple-touch-icon','./apple-touch-icon.png','es-apple-icon');
 }
 
-function showNonBlockingNotice(message) {
-  let toast = document.getElementById('boot-notice');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'boot-notice';
-    toast.style.cssText = 'position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);background:#242438;color:#fff;padding:10px 14px;border-radius:12px;font:600 11px/1.35 DM Sans,system-ui,sans-serif;box-shadow:0 10px 30px rgba(20,20,40,.18);text-align:center';
+function addHeadLink(rel,href,id){
+  if(document.getElementById(id)) return;
+  const link=document.createElement('link');
+  link.id=id; link.rel=rel; link.href=href;
+  document.head.appendChild(link);
+}
+
+function showFatal(message){
+  const app=document.getElementById('app');
+  if(!app) return;
+  app.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#FAF9FC;color:#242238;text-align:center"><div><img src="icon.svg" alt="Emotion Sense" style="width:82px;height:82px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#777489;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#6945E6;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
+}
+
+function showNonBlockingNotice(message){
+  let toast=document.getElementById('boot-notice');
+  if(!toast){
+    toast=document.createElement('div');
+    toast.id='boot-notice';
+    toast.style.cssText='position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);background:#242238;color:#fff;padding:10px 14px;border-radius:12px;font:600 11px/1.35 DM Sans,system-ui,sans-serif;box-shadow:0 10px 30px rgba(20,20,40,.18);text-align:center';
     document.body.appendChild(toast);
   }
-  toast.textContent = message;
-  setTimeout(() => toast.remove(), 4200);
+  toast.textContent=message;
+  setTimeout(()=>toast.remove(),4200);
 }

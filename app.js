@@ -4,7 +4,7 @@ prepareBrand();
 
 (async function boot(){
   try{
-    await import('./app-core.js?v=13');
+    await import('./app-core.js?v=14');
   }catch(error){
     console.error('Emotion Sense core error',error);
     showFatal('Não consegui carregar as funções do app. Recarregue a página.');
@@ -12,7 +12,7 @@ prepareBrand();
   }
 
   try{
-    await import('./app-main.js?v=13');
+    await import('./app-main.js?v=14');
   }catch(error){
     console.error('Emotion Sense auth error',error);
     document.body.classList.remove('es-gate');
@@ -21,13 +21,18 @@ prepareBrand();
     showNonBlockingNotice('Modo local ativo. A sincronização da conta não carregou agora.');
   }
 
-  import('./cohesion.js?v=13').catch(error=>console.error('Emotion Sense UI extras error',error));
+  Promise.allSettled([
+    import('./cohesion.js?v=14'),
+    import('./onboarding.js?v=14')
+  ]).then(results=>results.forEach(result=>{
+    if(result.status==='rejected') console.error('Emotion Sense optional module error',result.reason);
+  }));
 })();
 
 function prepareBrand(){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.content='#6945E6';
-  addHeadLink('stylesheet','./brand.css?v=13','es-brand-css');
+  addHeadLink('stylesheet','./brand.css?v=14','es-brand-css');
   addHeadLink('icon','./favicon.ico','es-favicon');
   addHeadLink('apple-touch-icon','./apple-touch-icon.png','es-apple-icon');
 }

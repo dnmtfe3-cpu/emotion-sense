@@ -1,8 +1,8 @@
-const CACHE='emotion-sense-shell-v13';
+const CACHE='emotion-sense-shell-v14';
 const ASSETS=[
-  './','./index.html','./styles.css?v=11','./brand.css?v=13','./app.js?v=13',
-  './app-main.js?v=13','./app-core.js?v=13','./cohesion.js?v=13','./manifest.webmanifest',
-  './icon.svg','./logo.svg','./favicon.ico','./apple-touch-icon.png','./icon-192.png'
+  './','./index.html','./styles.css?v=11','./brand.css?v=14','./app.js?v=14',
+  './app-main.js?v=14','./app-core.js?v=14','./cohesion.js?v=14','./onboarding.js?v=14',
+  './manifest.webmanifest','./icon.svg','./logo.svg','./favicon.ico','./apple-touch-icon.png','./icon-192.png'
 ];
 
 self.addEventListener('install',event=>{

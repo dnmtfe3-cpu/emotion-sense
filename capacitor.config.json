@@ -1,0 +1,12 @@
+{
+  "appId": "com.dnmtfe3.emotionsense",
+  "appName": "Emotion Sense",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

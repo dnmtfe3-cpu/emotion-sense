@@ -1,5 +1,5 @@
-const CACHE='emotion-sense-shell-v10';
-const ASSETS=['./','./index.html','./styles.css?v=5','./app.js?v=5','./app-main.js?v=10','./experience.js?v=10','./polish.js?v=10','./app-core.js?v=10','./manifest.webmanifest'];
+const CACHE='emotion-sense-shell-v11';
+const ASSETS=['./','./index.html','./styles.css?v=11','./app.js?v=11','./app-main.js?v=11','./polish.js?v=11','./app-core.js?v=10','./manifest.webmanifest'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();

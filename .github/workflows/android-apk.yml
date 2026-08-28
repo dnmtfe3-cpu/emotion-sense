@@ -1,0 +1,66 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Apply Emotion Sense Android config
+        run: node scripts/configure-android.mjs
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Restore Android config after sync
+        run: node scripts/configure-android.mjs
+
+      - name: Build installable debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare APK artifact
+        run: |
+          mkdir -p apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk apk/EmotionSense.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmotionSense-Android-APK
+          path: apk/EmotionSense.apk
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4F46E5" />
+  <meta name="description" content="Emotion Sense — acompanhe sinais faciais e seus próprios check-ins de bem-estar." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Emotion Sense</title>
+</head>
+<body>
+  <main class="app" id="app">
+    <section class="screen active" id="screen-inicio">
+      <header class="home-header">
+        <div>
+          <div class="eyebrow">Emotion Sense</div>
+          <h1>Olá, <span id="home-first-name">você</span></h1>
+          <p>Como você está se sentindo agora?</p>
+        </div>
+        <button class="avatar-button" onclick="switchTab('screen-perfil')" aria-label="Abrir perfil">
+          <img id="home-avatar" alt="Foto de perfil" />
+        </button>
+      </header>
+
+      <div class="content home-content">
+        <article class="hero-scan-card">
+          <div class="hero-orb" aria-hidden="true">
+            <span class="orb-core"></span>
+            <span class="orb-ring ring-one"></span>
+            <span class="orb-ring ring-two"></span>
+          </div>
+          <div class="hero-copy">
+            <span class="pill">Sense Scan</span>
+            <h2>Faça uma leitura rápida</h2>
+            <p>A câmera acompanha movimentos do rosto e combina o resultado com seu check-in.</p>
+            <button class="btn btn-primary" onclick="switchTab('screen-analisar')">Analisar agora</button>
+          </div>
+        </article>
+
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">Hoje</span>
+            <h2>Seu resumo</h2>
+          </div>
+          <button class="text-btn" onclick="switchTab('screen-historico')">Ver histórico</button>
+        </div>
+
+        <div class="summary-grid">
+          <article class="metric-card">
+            <span class="metric-icon">◌</span>
+            <span class="metric-label">Última leitura</span>
+            <strong id="home-last-level">Sem dados</strong>
+            <small id="home-last-time">Faça seu primeiro scan</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon">⌁</span>
+            <span class="metric-label">Check-ins</span>
+            <strong id="home-checkins">0 hoje</strong>
+            <small>Registros de como você se sente</small>
+          </article>
+        </div>
+
+        <section class="section-block">
+          <div class="section-title">Check-in rápido</div>
+          <div class="card checkin-card">
+            <p>Sem câmera. Só marque como você está agora.</p>
+            <div class="mood-grid" id="quick-moods">
+              <button data-mood="Bem" onclick="quickCheckin('Bem', this)"><span>●</span>Bem</button>
+              <button data-mood="Neutro" onclick="quickCheckin('Neutro', this)"><span>●</span>Neutro</button>
+              <button data-mood="Tenso" onclick="quickCheckin('Tenso', this)"><span>●</span>Tenso</button>
+              <button data-mood="Cansado" onclick="quickCheckin('Cansado', this)"><span>●</span>Cansado</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-block">
+          <div class="section-title">Importante</div>
+          <div class="notice-card">
+            <div class="notice-icon">i</div>
+            <p>O Emotion Sense não diagnostica ansiedade nem prevê crises. Ele acompanha mudanças faciais e seus próprios registros para ajudar você a perceber padrões.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-analisar">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">Sense Scan</div>
+          <h1>Análise facial</h1>
+        </div>
+        <span class="local-badge">No dispositivo</span>
+      </header>
+
+      <div class="content scan-content">
+        <div class="camera-card" id="camera-card">
+          <video id="camera" playsinline muted></video>
+          <div class="camera-placeholder" id="camera-placeholder">
+            <div class="face-outline">
+              <span class="eye eye-left"></span><span class="eye eye-right"></span><span class="mouth"></span>
+            </div>
+            <h2>Câmera desligada</h2>
+            <p>Toque abaixo para permitir a câmera somente durante a análise.</p>
+          </div>
+          <div class="scan-frame" id="scan-frame" hidden>
+            <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+            <div class="scan-line"></div>
+          </div>
+          <div class="camera-status" id="camera-status">Pronto para começar</div>
+        </div>
+
+        <button class="btn btn-primary btn-wide" id="camera-button" onclick="toggleCamera()">Ativar câmera</button>
+        <button class="btn btn-scan btn-wide" id="scan-button" onclick="startTimedScan()" disabled>Iniciar análise de 10 s</button>
+
+        <div class="live-panel" id="live-panel">
+          <div class="live-title"><span class="pulse-dot"></span>Sinais faciais ao vivo</div>
+          <div class="signal-row"><span>Sobrancelhas</span><div class="bar"><i id="bar-brow"></i></div><b id="val-brow">—</b></div>
+          <div class="signal-row"><span>Olhos</span><div class="bar"><i id="bar-eye"></i></div><b id="val-eye">—</b></div>
+          <div class="signal-row"><span>Boca</span><div class="bar"><i id="bar-mouth"></i></div><b id="val-mouth">—</b></div>
+          <div class="signal-row"><span>Sorriso</span><div class="bar"><i id="bar-smile"></i></div><b id="val-smile">—</b></div>
+        </div>
+
+        <div class="privacy-inline">
+          <span>◆</span>
+          <p>Os quadros da câmera são usados para calcular landmarks e blendshapes. O app não salva o vídeo da análise.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-resultado">
+      <header class="topbar sub-topbar">
+        <button class="back-btn" onclick="goto('screen-analisar')" aria-label="Voltar">‹</button>
+        <h1>Resultado</h1>
+      </header>
+      <div class="content result-content">
+        <article class="result-hero">
+          <div class="result-ring"><strong id="result-score">0</strong><span>%</span></div>
+          <span class="pill">Ativação facial estimada</span>
+          <h2 id="result-title">Leitura concluída</h2>
+          <p id="result-copy">Esse número representa apenas mudanças nos movimentos faciais observados durante a leitura.</p>
+        </article>
+
+        <section class="section-block">
+          <div class="section-title">Como você está se sentindo?</div>
+          <div class="card checkin-card">
+            <p>Seu relato vale mais que a câmera. Escolha a opção que mais combina com o momento.</p>
+            <div class="mood-grid result-moods">
+              <button onclick="saveScanMood('Bem', this)"><span>●</span>Bem</button>
+              <button onclick="saveScanMood('Neutro', this)"><span>●</span>Neutro</button>
+              <button onclick="saveScanMood('Tenso', this)"><span>●</span>Tenso</button>
+              <button onclick="saveScanMood('Ansioso', this)"><span>●</span>Ansioso</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-block">
+          <div class="section-title">Leitura detalhada</div>
+          <div class="card details-card">
+            <div class="detail-row"><span>Tensão de sobrancelhas</span><strong id="result-brow">—</strong></div>
+            <div class="detail-row"><span>Olhos apertados</span><strong id="result-eye">—</strong></div>
+            <div class="detail-row"><span>Pressão da boca</span><strong id="result-mouth">—</strong></div>
+            <div class="detail-row"><span>Sorriso</span><strong id="result-smile">—</strong></div>
+          </div>
+        </section>
+
+        <button class="btn btn-primary btn-wide" onclick="finishResult()">Concluir</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-historico">
+      <header class="topbar"><div><div class="eyebrow">Registros</div><h1>Histórico</h1></div></header>
+      <div class="content">
+        <div class="history-summary">
+          <div><span>Últimos 7 dias</span><strong id="history-count">0 registros</strong></div>
+          <button class="icon-btn" onclick="clearHistory()" aria-label="Limpar histórico">⌫</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
+        <div class="empty-state" id="history-empty">
+          <div class="empty-orb">◌</div>
+          <h2>Nenhum registro ainda</h2>
+          <p>Suas análises e check-ins aparecerão aqui.</p>
+          <button class="btn btn-outline" onclick="switchTab('screen-analisar')">Fazer primeira análise</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-perfil">
+      <div class="profile-hero">
+        <div class="avatar-wrap">
+          <img class="avatar" id="hero-avatar" alt="Foto do usuário" />
+          <button class="avatar-edit-btn" onclick="document.getElementById('photo-input').click()" aria-label="Alterar foto">✎</button>
+          <input type="file" id="photo-input" accept="image/*" onchange="handlePhotoPick(event)" hidden />
+        </div>
+        <div class="name" id="hero-name">Seu nome</div>
+        <div class="profile-sub">Emotion Sense</div>
+        <button class="btn btn-outline-light" onclick="goto('screen-conta')">Editar perfil</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Minha conta</div>
+        <div class="card">
+          <button class="row" onclick="goto('screen-conta')"><span class="row-icon">○</span><span class="row-label">Nome e foto</span><span class="chevron">›</span></button>
+          <button class="row" onclick="goto('screen-conta')"><span class="row-icon">@</span><span class="row-label">E-mail <small id="profile-email">Não informado</small></span><span class="chevron">›</span></button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Acompanhamento</div>
+        <div class="card">
+          <div class="row static"><span class="row-icon">◉</span><span class="row-label">Lembretes de check-in</span><label class="switch"><input type="checkbox" id="pref-checkin" onchange="updatePreference('checkinReminders', this.checked)"><span class="track"><span class="thumb"></span></span></label></div>
+          <div class="row static"><span class="row-icon">⌁</span><span class="row-label">Avisos de mudança de padrão</span><label class="switch"><input type="checkbox" id="pref-pattern" onchange="updatePreference('patternAlerts', this.checked)"><span class="track"><span class="thumb"></span></span></label></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Privacidade e segurança</div>
+        <div class="card">
+          <button class="row" onclick="goto('screen-privacidade')"><span class="row-icon">◇</span><span class="row-label">Como a câmera é usada</span><span class="chevron">›</span></button>
+          <button class="row" onclick="goto('screen-sobre')"><span class="row-icon">i</span><span class="row-label">Sobre o Emotion Sense</span><span class="chevron">›</span></button>
+        </div>
+      </div>
+
+      <div class="section bottom-section">
+        <button class="danger-link" onclick="resetApp()">Apagar dados deste dispositivo</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-conta">
+      <header class="topbar sub-topbar"><button class="back-btn" onclick="goto('screen-perfil')">‹</button><h1>Minha conta</h1></header>
+      <div class="content form-content">
+        <div class="avatar-edit-large">
+          <img id="account-avatar" class="avatar" alt="Foto do usuário" />
+          <button onclick="document.getElementById('photo-input').click()">Alterar foto</button>
+        </div>
+        <label class="field"><span>Nome</span><input id="input-name" autocomplete="name" placeholder="Seu nome" /></label>
+        <label class="field"><span>E-mail</span><input id="input-email" type="email" autocomplete="email" placeholder="voce@email.com" /></label>
+        <button class="btn btn-primary btn-wide" onclick="saveAccount()">Salvar alterações</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-privacidade">
+      <header class="topbar sub-topbar"><button class="back-btn" onclick="goto('screen-perfil')">‹</button><h1>Câmera e privacidade</h1></header>
+      <div class="content prose">
+        <div class="prose-icon">◇</div>
+        <h2>Seu rosto não precisa virar um arquivo</h2>
+        <p>Durante o Sense Scan, a câmera envia quadros diretamente para o analisador no navegador. O protótipo salva somente números resumidos da leitura e o check-in que você escolher.</p>
+        <h3>O que fica salvo</h3>
+        <p>Data, horário, intensidade dos sinais faciais e o estado que você marcou. Tudo fica no armazenamento local deste dispositivo nesta versão.</p>
+        <h3>O que não fica salvo</h3>
+        <p>O vídeo da câmera e imagens do rosto durante o scan.</p>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-sobre">
+      <header class="topbar sub-topbar"><button class="back-btn" onclick="goto('screen-perfil')">‹</button><h1>Sobre</h1></header>
+      <div class="content prose">
+        <div class="brand-mark"><span></span></div>
+        <h2>Emotion Sense</h2>
+        <p>Um app de autoconsciência que combina sinais faciais com check-ins feitos pelo próprio usuário.</p>
+        <div class="notice-card"><div class="notice-icon">!</div><p>Não é um serviço médico, não faz diagnóstico e não deve ser usado para decidir se alguém terá uma crise.</p></div>
+      </div>
+    </section>
+
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Navegação principal">
+      <button class="nav-item active" data-tab="screen-inicio" onclick="switchTab('screen-inicio')">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg><span>Início</span><i class="dot"></i>
+      </button>
+      <button class="nav-item" data-tab="screen-analisar" onclick="switchTab('screen-analisar')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 7v2M9 11h.01M15 11h.01M9 15c1.7 1.4 4.3 1.4 6 0"/></svg><span>Analisar</span><i class="dot"></i>
+      </button>
+      <button class="nav-item" data-tab="screen-historico" onclick="switchTab('screen-historico')">
+        <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg><span>Histórico</span><i class="dot"></i>
+      </button>
+      <button class="nav-item" data-tab="screen-perfil" onclick="switchTab('screen-perfil')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg><span>Perfil</span><i class="dot"></i>
+      </button>
+    </nav>
+
+    <div class="toast" id="toast"><span id="toast-text">Pronto.</span></div>
+    <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><p id="loading-text">Preparando análise…</p></div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,370 +1,183 @@
-const STORAGE_KEY = 'emotion_sense_state_v1';
-const MEDIAPIPE_VERSION = '1.0.1';
-const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const SESSION_KEY = 'emotion_sense_session_v1';
+const STATE_KEY = 'emotion_sense_state_v1';
 
-const defaultState = () => ({
-  profile: { name: '', email: '', photo: '' },
-  preferences: { checkinReminders: true, patternAlerts: true },
-  history: [],
-  lastScan: null
-});
+injectFontAndGate();
+mountAuthRoot();
 
-let state = loadState();
-let stream = null;
-let faceLandmarker = null;
-let visionModule = null;
-let animationFrame = null;
-let lastVideoTime = -1;
-let latestSignals = null;
-let scanBuffer = [];
-let scanRunning = false;
-let pendingScan = null;
-let toastTimer = null;
+(async function bootEmotionSense() {
+  showSplash();
+  const session = readSession();
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...defaultState(), ...JSON.parse(raw) } : defaultState();
-  } catch {
-    return defaultState();
-  }
-}
-function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-
-window.switchTab = switchTab;
-window.goto = goto;
-window.toggleCamera = toggleCamera;
-window.startTimedScan = startTimedScan;
-window.quickCheckin = quickCheckin;
-window.saveScanMood = saveScanMood;
-window.finishResult = finishResult;
-window.handlePhotoPick = handlePhotoPick;
-window.saveAccount = saveAccount;
-window.updatePreference = updatePreference;
-window.clearHistory = clearHistory;
-window.resetApp = resetApp;
-
-function switchTab(id) {
-  if (id !== 'screen-analisar' && stream) stopCamera();
-  showScreen(id, true);
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    const active = btn.dataset.tab === id;
-    btn.classList.toggle('active', active);
-    if (active) {
-      btn.classList.remove('bounce');
-      void btn.offsetWidth;
-      btn.classList.add('bounce');
+  if (session?.signedIn) {
+    try {
+      await import('./app-core.js');
+      installAccountControls();
+      setTimeout(enterExistingApp, 1050);
+    } catch (error) {
+      console.error(error);
+      showAuthMessage('Não foi possível iniciar o app. Atualize a página.');
     }
-  });
-  document.getElementById('bottom-nav').style.display = 'flex';
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  if (id === 'screen-historico') renderHistory();
-  if (id === 'screen-perfil') renderProfile();
-}
-
-function goto(id) {
-  if (id !== 'screen-analisar' && stream && id !== 'screen-resultado') stopCamera();
-  showScreen(id, false);
-  const isSub = !['screen-inicio','screen-analisar','screen-historico','screen-perfil'].includes(id);
-  document.getElementById('bottom-nav').style.display = isSub ? 'none' : 'flex';
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  if (id === 'screen-conta') renderAccount();
-}
-
-function showScreen(id, tab) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','tab-in'));
-  const target = document.getElementById(id);
-  target.classList.add('active');
-  if (tab) target.classList.add('tab-in');
-}
-
-function initials(name) {
-  return (name || '?').trim().split(/\s+/).slice(0,2).map(p => p[0]?.toUpperCase()).join('') || '?';
-}
-function avatarSrc() {
-  if (state.profile.photo) return state.profile.photo;
-  const label = initials(state.profile.name);
-  return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4F46E5"/><stop offset="1" stop-color="#312E81"/></linearGradient></defs><rect width="160" height="160" rx="80" fill="url(#g)"/><text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="54" font-weight="700" fill="#fff">${label}</text></svg>`)}`;
-}
-
-function renderAll() {
-  renderHome();
-  renderProfile();
-  renderHistory();
-  renderPreferences();
-}
-
-function renderHome() {
-  const name = state.profile.name?.trim();
-  document.getElementById('home-first-name').textContent = name ? name.split(/\s+/)[0] : 'você';
-  document.getElementById('home-avatar').src = avatarSrc();
-  const todayKey = new Date().toDateString();
-  const todayCount = state.history.filter(h => new Date(h.createdAt).toDateString() === todayKey).length;
-  document.getElementById('home-checkins').textContent = `${todayCount} hoje`;
-  if (state.lastScan) {
-    document.getElementById('home-last-level').textContent = state.lastScan.label;
-    document.getElementById('home-last-time').textContent = formatRelativeTime(state.lastScan.createdAt);
-  } else {
-    document.getElementById('home-last-level').textContent = 'Sem dados';
-    document.getElementById('home-last-time').textContent = 'Faça seu primeiro scan';
+    return;
   }
+
+  setTimeout(showWelcome, 1050);
+})();
+
+function injectFontAndGate() {
+  document.querySelectorAll('link[href*="fonts.googleapis.com"]').forEach(link => link.remove());
+  const font = document.createElement('link');
+  font.rel = 'stylesheet';
+  font.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap';
+  document.head.appendChild(font);
+
+  const style = document.createElement('style');
+  style.textContent = `
+    html,body,button,input{font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+    h1,h2,h3,.display,.metric-card strong,.result-ring strong,.history-summary strong,.history-score{font-family:"DM Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+    body.es-gate .screen,body.es-gate #bottom-nav{display:none!important}
+    #es-auth-root{position:absolute;inset:0;z-index:1000;background:#F7F7FB;color:#18182B;min-height:100vh;overflow:auto}
+    .es-auth{min-height:100vh;display:flex;flex-direction:column;padding:26px 22px calc(25px + env(safe-area-inset-bottom));animation:esIn .35s cubic-bezier(.22,1,.36,1) both}
+    @keyframes esIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+    .es-splash{align-items:center;justify-content:center;color:#fff;background:linear-gradient(155deg,#4F46E5 0%,#3730A3 54%,#211D5E 100%);overflow:hidden;position:relative}
+    .es-splash:before{content:"";position:absolute;width:270px;height:270px;border-radius:50%;background:rgba(34,199,214,.18);right:-145px;top:-110px}
+    .es-splash:after{content:"";position:absolute;width:210px;height:210px;border-radius:50%;background:rgba(255,255,255,.08);left:-130px;bottom:-110px}
+    .es-sense{width:112px;height:112px;position:relative;display:grid;place-items:center;color:#88E7F0;z-index:2}
+    .es-dot{width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:0 0 35px rgba(255,255,255,.4);z-index:3}
+    .es-ring{position:absolute;border:2px solid currentColor;border-radius:50%;animation:esPulse 2.1s ease-in-out infinite}.es-r1{width:72px;height:72px;opacity:.5}.es-r2{width:104px;height:104px;opacity:.24;animation-delay:.35s}
+    @keyframes esPulse{0%,100%{transform:scale(.9);opacity:.22}50%{transform:scale(1.05);opacity:.68}}
+    .es-brand{font-size:25px;font-weight:700;letter-spacing:-.035em;margin-top:17px;z-index:2}.es-caption{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.58);margin-top:8px;z-index:2}
+    .es-welcome{justify-content:flex-end}.es-art{min-height:43vh;margin:-26px -22px 26px;display:grid;place-items:center;position:relative;background:linear-gradient(155deg,#EEF2FF,#F7F7FB 74%);overflow:hidden}
+    .es-art .es-sense{color:#4F46E5;width:132px;height:132px}.es-art .es-dot{background:linear-gradient(145deg,#4F46E5,#22C7D6);box-shadow:0 15px 38px rgba(79,70,229,.22)}
+    .es-kicker{font-size:10px;font-weight:700;letter-spacing:.14em;color:#4F46E5;margin-bottom:10px}.es-title{font-size:31px;line-height:1.08;letter-spacing:-.035em;font-weight:700;margin:0 0 11px}.es-copy{font-size:13px;line-height:1.6;color:#6D6D80;margin:0}
+    .es-actions{display:grid;gap:10px;margin-top:27px}.es-primary,.es-secondary{width:100%;border-radius:15px;padding:15px 17px;border:0;font-size:13px;font-weight:700}.es-primary{background:#4F46E5;color:#fff;box-shadow:0 12px 28px rgba(79,70,229,.17)}.es-secondary{background:#fff;color:#18182B;border:1px solid #E8E8F0}.es-primary:active,.es-secondary:active{transform:scale(.975)}
+    .es-note{text-align:center;font-size:9px;line-height:1.5;color:#8A8A9B;margin:15px 18px 0}.es-form-screen{justify-content:center;position:relative}.es-back{position:absolute;top:22px;left:20px;width:38px;height:38px;border:1px solid #E8E8F0;border-radius:50%;background:#fff;color:#18182B;font-size:27px;display:grid;place-items:center}.es-mini{position:absolute;top:31px;left:72px;font-size:12px;font-weight:700}.es-mini i{display:inline-block;width:9px;height:9px;border-radius:50%;background:linear-gradient(145deg,#4F46E5,#22C7D6);margin-right:6px}
+    .es-form-head{margin-top:42px}.es-form{display:grid;gap:13px;margin-top:28px}.es-field span{display:block;font-size:10px;font-weight:600;color:#6D6D80;margin:0 0 7px 2px}.es-field input{width:100%;border:1px solid #E8E8F0;border-radius:15px;background:#fff;padding:14px 15px;color:#18182B;font-size:13px;outline:none}.es-field input:focus{border-color:rgba(79,70,229,.55);box-shadow:0 0 0 4px rgba(79,70,229,.07)}
+    .es-link{justify-self:end;border:0;background:none;color:#4F46E5;font-size:10px;font-weight:600}.es-switch{text-align:center;font-size:10px;color:#6D6D80;margin-top:18px}.es-switch button{border:0;background:none;color:#4F46E5;font-size:inherit;font-weight:700}.es-error{min-height:16px;color:#A34242;font-size:10px;text-align:center;margin-top:10px}
+    .es-logout{display:block;width:100%;border:1px solid #E8E8F0;background:#fff;color:#18182B;font-weight:700;font-size:11px;border-radius:13px;padding:13px;margin-bottom:9px}
+  `;
+  document.head.appendChild(style);
+  document.body.classList.add('es-gate');
 }
 
-function renderProfile() {
-  const src = avatarSrc();
-  document.getElementById('hero-avatar').src = src;
-  document.getElementById('account-avatar').src = src;
-  document.getElementById('hero-name').textContent = state.profile.name || 'Seu nome';
-  document.getElementById('profile-email').textContent = state.profile.email || 'Não informado';
-  renderPreferences();
+function mountAuthRoot() {
+  const root = document.createElement('div');
+  root.id = 'es-auth-root';
+  document.getElementById('app').appendChild(root);
 }
 
-function renderAccount() {
-  document.getElementById('input-name').value = state.profile.name || '';
-  document.getElementById('input-email').value = state.profile.email || '';
-  document.getElementById('account-avatar').src = avatarSrc();
+function authRoot() { return document.getElementById('es-auth-root'); }
+function setAuth(html) { authRoot().innerHTML = html; }
+
+function senseMark() {
+  return '<div class="es-sense"><span class="es-dot"></span><span class="es-ring es-r1"></span><span class="es-ring es-r2"></span></div>';
 }
 
-function renderPreferences() {
-  document.getElementById('pref-checkin').checked = !!state.preferences.checkinReminders;
-  document.getElementById('pref-pattern').checked = !!state.preferences.patternAlerts;
+function showSplash() {
+  setAuth(`<section class="es-auth es-splash">${senseMark()}<div class="es-brand">Emotion Sense</div><div class="es-caption">perceba seus sinais</div></section>`);
 }
 
-function saveAccount() {
-  const name = document.getElementById('input-name').value.trim();
-  const email = document.getElementById('input-email').value.trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Digite um e-mail válido.'); return;
-  }
-  state.profile.name = name;
-  state.profile.email = email;
-  saveState(); renderAll(); showToast('Perfil atualizado.'); goto('screen-perfil');
+function showWelcome() {
+  setAuth(`<section class="es-auth es-welcome"><div class="es-art">${senseMark()}</div><div class="es-kicker">EMOTION SENSE</div><h1 class="es-title">Entenda melhor como você está.</h1><p class="es-copy">Check-ins rápidos e análise facial para acompanhar mudanças ao longo do tempo.</p><div class="es-actions"><button class="es-primary" id="es-create">Criar conta</button><button class="es-secondary" id="es-login">Já tenho uma conta</button></div><p class="es-note">O app não faz diagnóstico médico nem prevê crises.</p></section>`);
+  document.getElementById('es-create').onclick = showSignup;
+  document.getElementById('es-login').onclick = showLogin;
 }
 
-function handlePhotoPick(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('Escolha uma imagem.'); return; }
-  const reader = new FileReader();
-  reader.onload = () => { state.profile.photo = reader.result; saveState(); renderAll(); showToast('Foto atualizada.'); };
-  reader.readAsDataURL(file);
-  event.target.value = '';
+function showLogin() {
+  setAuth(formTemplate('login'));
+  bindBackAndSwitch(showSignup);
+  document.getElementById('es-submit').onclick = login;
+  document.getElementById('es-forgot').onclick = () => showAuthMessage('A recuperação de senha será ativada com o backend.');
+  setTimeout(() => document.getElementById('es-email')?.focus(), 120);
 }
 
-function updatePreference(key, value) { state.preferences[key] = !!value; saveState(); showToast('Preferência atualizada.'); }
-
-async function ensureFaceLandmarker() {
-  if (faceLandmarker) return faceLandmarker;
-  setLoading(true, 'Carregando o analisador facial…');
-  try {
-    visionModule = await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/+esm`);
-    const { FilesetResolver, FaceLandmarker } = visionModule;
-    const vision = await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`);
-    faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-      runningMode: 'VIDEO',
-      numFaces: 1,
-      outputFaceBlendshapes: true,
-      minFaceDetectionConfidence: 0.5,
-      minFacePresenceConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-    return faceLandmarker;
-  } catch (error) {
-    console.error(error);
-    showToast('Não foi possível carregar o modelo facial.');
-    throw error;
-  } finally { setLoading(false); }
+function showSignup() {
+  setAuth(formTemplate('signup'));
+  bindBackAndSwitch(showLogin);
+  document.getElementById('es-submit').onclick = signup;
+  setTimeout(() => document.getElementById('es-name')?.focus(), 120);
 }
 
-async function toggleCamera() {
-  if (stream) { stopCamera(); return; }
-  if (!navigator.mediaDevices?.getUserMedia) { showToast('Este navegador não oferece acesso à câmera.'); return; }
-  try {
-    await ensureFaceLandmarker();
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
-    const video = document.getElementById('camera');
-    video.srcObject = stream;
-    await video.play();
-    video.style.display = 'block';
-    document.getElementById('camera-placeholder').style.display = 'none';
-    document.getElementById('scan-frame').hidden = false;
-    document.getElementById('camera-button').textContent = 'Desativar câmera';
-    document.getElementById('scan-button').disabled = false;
-    document.getElementById('camera-status').textContent = 'Procurando rosto…';
-    analyzeLoop();
-  } catch (error) {
-    console.error(error);
-    if (error?.name === 'NotAllowedError') showToast('Permissão da câmera negada.');
-    else showToast('Não foi possível abrir a câmera.');
-  }
+function formTemplate(mode) {
+  const signup = mode === 'signup';
+  return `<section class="es-auth es-form-screen"><button class="es-back" id="es-back">‹</button><div class="es-mini"><i></i>Emotion Sense</div><div class="es-form-head"><div class="es-kicker">${signup ? 'COMECE AGORA' : 'BEM-VINDO DE VOLTA'}</div><h1 class="es-title">${signup ? 'Criar conta' : 'Entrar'}</h1><p class="es-copy">${signup ? 'Seus primeiros dados ficam somente neste dispositivo.' : 'Acesse seus registros e continue de onde parou.'}</p></div><div class="es-form">${signup ? '<label class="es-field"><span>Nome</span><input id="es-name" autocomplete="name" placeholder="Seu nome"></label>' : ''}<label class="es-field"><span>E-mail</span><input id="es-email" type="email" autocomplete="email" placeholder="voce@email.com"></label><label class="es-field"><span>Senha</span><input id="es-password" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" placeholder="${signup ? 'Mínimo 6 caracteres' : 'Sua senha'}"></label>${signup ? '' : '<button class="es-link" id="es-forgot" type="button">Esqueci minha senha</button>'}<button class="es-primary" id="es-submit">${signup ? 'Criar conta' : 'Entrar'}</button><div class="es-error" id="es-error"></div></div><div class="es-switch">${signup ? 'Já tem conta?' : 'Ainda não tem conta?'} <button id="es-switch">${signup ? 'Entrar' : 'Criar conta'}</button></div></section>`;
 }
 
-function stopCamera() {
-  if (animationFrame) cancelAnimationFrame(animationFrame);
-  animationFrame = null;
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  stream = null; scanRunning = false; scanBuffer = []; latestSignals = null; lastVideoTime = -1;
-  const video = document.getElementById('camera');
-  if (video) { video.pause(); video.srcObject = null; video.style.display = 'none'; }
-  const placeholder = document.getElementById('camera-placeholder');
-  if (placeholder) placeholder.style.display = 'flex';
-  const frame = document.getElementById('scan-frame'); if (frame) frame.hidden = true;
-  const btn = document.getElementById('camera-button'); if (btn) btn.textContent = 'Ativar câmera';
-  const scan = document.getElementById('scan-button'); if (scan) { scan.disabled = true; scan.textContent = 'Iniciar análise de 10 s'; }
-  const status = document.getElementById('camera-status'); if (status) status.textContent = 'Pronto para começar';
-  updateLivePanel(null);
+function bindBackAndSwitch(next) {
+  document.getElementById('es-back').onclick = showWelcome;
+  document.getElementById('es-switch').onclick = next;
 }
 
-function analyzeLoop() {
-  const video = document.getElementById('camera');
-  if (!stream || !faceLandmarker) return;
-  try {
-    if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-      const result = faceLandmarker.detectForVideo(video, performance.now());
-      lastVideoTime = video.currentTime;
-      const categories = result?.faceBlendshapes?.[0]?.categories || [];
-      if (categories.length) {
-        latestSignals = computeSignals(categories);
-        updateLivePanel(latestSignals);
-        document.getElementById('camera-status').textContent = scanRunning ? 'Analisando… mantenha o rosto visível' : 'Rosto detectado';
-        if (scanRunning) scanBuffer.push(latestSignals);
-      } else {
-        document.getElementById('camera-status').textContent = 'Posicione seu rosto no centro';
-        updateLivePanel(null);
-      }
-    }
-  } catch (error) { console.error('Face analysis frame error', error); }
-  animationFrame = requestAnimationFrame(analyzeLoop);
+async function signup() {
+  const name = document.getElementById('es-name').value.trim();
+  const email = document.getElementById('es-email').value.trim();
+  const password = document.getElementById('es-password').value;
+  if (!name || !email || !password) return showAuthMessage('Preencha todos os campos.');
+  if (!validEmail(email)) return showAuthMessage('Digite um e-mail válido.');
+  if (password.length < 6) return showAuthMessage('A senha precisa ter pelo menos 6 caracteres.');
+
+  const passwordHash = await hashPassword(password);
+  const session = { signedIn: true, name, email, passwordHash };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const current = readState();
+  current.profile = { ...(current.profile || {}), name, email };
+  localStorage.setItem(STATE_KEY, JSON.stringify(current));
+  location.reload();
 }
 
-function computeSignals(categories) {
-  const map = Object.fromEntries(categories.map(c => [c.categoryName, c.score]));
-  const avg = (...keys) => keys.reduce((sum, key) => sum + (map[key] || 0), 0) / keys.length;
-  const brow = avg('browDownLeft','browDownRight');
-  const eye = avg('eyeSquintLeft','eyeSquintRight');
-  const mouth = avg('mouthPressLeft','mouthPressRight');
-  const smile = avg('mouthSmileLeft','mouthSmileRight');
-  const jaw = map.jawOpen || 0;
-  const activation = clamp((brow * .34) + (eye * .24) + (mouth * .26) + (Math.min(jaw, .65) * .16), 0, 1);
-  return { brow, eye, mouth, smile, jaw, activation };
+async function login() {
+  const email = document.getElementById('es-email').value.trim();
+  const password = document.getElementById('es-password').value;
+  if (!email || !password) return showAuthMessage('Preencha e-mail e senha.');
+  if (!validEmail(email)) return showAuthMessage('Digite um e-mail válido.');
+  const account = readSession();
+  if (!account?.passwordHash) return showAuthMessage('Crie uma conta neste dispositivo primeiro.');
+  if (account.email.toLowerCase() !== email.toLowerCase()) return showAuthMessage('E-mail não encontrado neste dispositivo.');
+  if (await hashPassword(password) !== account.passwordHash) return showAuthMessage('Senha incorreta.');
+  account.signedIn = true;
+  localStorage.setItem(SESSION_KEY, JSON.stringify(account));
+  location.reload();
 }
 
-function updateLivePanel(signals) {
-  const values = signals || { brow:0, eye:0, mouth:0, smile:0 };
-  [['brow',values.brow],['eye',values.eye],['mouth',values.mouth],['smile',values.smile]].forEach(([key,val]) => {
-    const pct = signals ? Math.round(val*100) : 0;
-    document.getElementById(`bar-${key}`).style.width = `${pct}%`;
-    document.getElementById(`val-${key}`).textContent = signals ? `${pct}%` : '—';
-  });
+function installAccountControls() {
+  const bottom = document.querySelector('#screen-perfil .bottom-section');
+  if (!bottom || document.getElementById('es-logout')) return;
+  const button = document.createElement('button');
+  button.id = 'es-logout';
+  button.className = 'es-logout';
+  button.textContent = 'Sair da conta';
+  button.onclick = logout;
+  bottom.prepend(button);
 }
 
-async function startTimedScan() {
-  if (!stream || !faceLandmarker || scanRunning) return;
-  scanRunning = true; scanBuffer = [];
-  const button = document.getElementById('scan-button');
-  button.disabled = true;
-  let remaining = 10;
-  button.textContent = `Analisando… ${remaining}s`;
-  document.getElementById('camera-status').textContent = 'Analisando… mantenha o rosto visível';
-  const timer = setInterval(() => {
-    remaining -= 1;
-    button.textContent = remaining > 0 ? `Analisando… ${remaining}s` : 'Finalizando…';
-  }, 1000);
-  await delay(10000);
-  clearInterval(timer);
-  scanRunning = false;
-  button.disabled = false;
-  button.textContent = 'Iniciar nova análise';
-  if (scanBuffer.length < 8) { showToast('Não consegui acompanhar seu rosto por tempo suficiente.'); return; }
-  const averaged = averageSignals(scanBuffer);
-  pendingScan = { ...averaged, score: Math.round(averaged.activation * 100), label: labelActivation(averaged.activation), createdAt: new Date().toISOString(), mood: null };
-  fillResult(pendingScan);
-  stopCamera();
-  goto('screen-resultado');
+function logout() {
+  const session = readSession() || {};
+  session.signedIn = false;
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  location.reload();
 }
 
-function averageSignals(items) {
-  const keys = ['brow','eye','mouth','smile','jaw','activation'];
-  return Object.fromEntries(keys.map(k => [k, items.reduce((sum,item) => sum + item[k],0) / items.length]));
-}
-function labelActivation(v) { if (v < .22) return 'Baixa ativação'; if (v < .45) return 'Ativação moderada'; return 'Ativação elevada'; }
-function fillResult(scan) {
-  document.getElementById('result-score').textContent = scan.score;
-  document.getElementById('result-title').textContent = scan.label;
-  document.getElementById('result-copy').textContent = scan.score < 22 ? 'Pouca ativação nos sinais faciais acompanhados durante este scan.' : scan.score < 45 ? 'Alguns movimentos faciais ficaram mais ativos durante este scan.' : 'Vários movimentos faciais ficaram ativos ao mesmo tempo. Faça seu check-in para dar contexto ao resultado.';
-  ['brow','eye','mouth','smile'].forEach(k => document.getElementById(`result-${k}`).textContent = `${Math.round(scan[k]*100)}%`);
-  document.querySelectorAll('.result-moods button').forEach(b => b.classList.remove('selected'));
+function enterExistingApp() {
+  authRoot()?.remove();
+  document.body.classList.remove('es-gate');
+  window.switchTab?.('screen-inicio');
 }
 
-function saveScanMood(mood, button) {
-  if (!pendingScan) return;
-  pendingScan.mood = mood;
-  document.querySelectorAll('.result-moods button').forEach(b => b.classList.remove('selected'));
-  button.classList.add('selected');
-  showToast(`Check-in: ${mood}`);
+function readSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
 }
 
-function finishResult() {
-  if (!pendingScan) { switchTab('screen-inicio'); return; }
-  const record = { id: crypto.randomUUID?.() || String(Date.now()), type: 'scan', createdAt: pendingScan.createdAt, score: pendingScan.score, label: pendingScan.label, mood: pendingScan.mood || 'Não informado', signals: { brow: pendingScan.brow, eye: pendingScan.eye, mouth: pendingScan.mouth, smile: pendingScan.smile } };
-  state.history.unshift(record);
-  state.history = state.history.slice(0,200);
-  state.lastScan = record;
-  saveState();
-  pendingScan = null;
-  renderAll();
-  switchTab('screen-inicio');
-  showToast('Análise salva no histórico.');
+function readState() {
+  try { return JSON.parse(localStorage.getItem(STATE_KEY) || '{}'); } catch { return {}; }
 }
 
-function quickCheckin(mood, button) {
-  document.querySelectorAll('#quick-moods button').forEach(b => b.classList.remove('selected'));
-  button.classList.add('selected');
-  const record = { id: crypto.randomUUID?.() || String(Date.now()), type: 'checkin', createdAt: new Date().toISOString(), mood, label: 'Check-in', score: null };
-  state.history.unshift(record); state.history = state.history.slice(0,200); saveState(); renderHome();
-  setTimeout(() => button.classList.remove('selected'), 650);
-  showToast(`Registrado: ${mood}`);
+function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
+async function hashPassword(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
-
-function renderHistory() {
-  const list = document.getElementById('history-list');
-  const empty = document.getElementById('history-empty');
-  const sevenDays = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const count7 = state.history.filter(h => new Date(h.createdAt).getTime() >= sevenDays).length;
-  document.getElementById('history-count').textContent = `${count7} ${count7 === 1 ? 'registro' : 'registros'}`;
-  if (!state.history.length) { list.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display='none';
-  list.innerHTML = state.history.map(item => {
-    const isScan = item.type === 'scan';
-    const score = isScan ? `${item.score}%` : '•';
-    const subtitle = isScan ? `${item.mood || 'Sem check-in'} · ${formatDate(item.createdAt)}` : `${item.mood} · ${formatDate(item.createdAt)}`;
-    return `<article class="history-item"><div class="history-mark">${isScan ? '◌' : '●'}</div><div class="history-main"><strong>${escapeHtml(isScan ? item.label : 'Check-in rápido')}</strong><span>${escapeHtml(subtitle)}</span></div><div class="history-score">${score}</div></article>`;
-  }).join('');
+function showAuthMessage(message) {
+  const el = document.getElementById('es-error');
+  if (el) el.textContent = message;
+  else console.warn(message);
 }
-
-function clearHistory() {
-  if (!state.history.length) { showToast('O histórico já está vazio.'); return; }
-  if (!confirm('Apagar todo o histórico salvo neste dispositivo?')) return;
-  state.history = []; state.lastScan = null; saveState(); renderAll(); showToast('Histórico apagado.');
-}
-function resetApp() {
-  if (!confirm('Apagar perfil, preferências e histórico deste dispositivo?')) return;
-  localStorage.removeItem(STORAGE_KEY); state = defaultState(); renderAll(); switchTab('screen-inicio'); showToast('Dados locais apagados.');
-}
-
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  document.getElementById('toast-text').textContent = message;
-  toast.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
-}
-function setLoading(show, text='Preparando análise…') { const el=document.getElementById('loading-overlay'); document.getElementById('loading-text').textContent=text; el.classList.toggle('show',show); }
-function formatDate(iso) { return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(iso)); }
-function formatRelativeTime(iso) { const mins=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000)); if(mins<1)return 'Agora'; if(mins<60)return `Há ${mins} min`; const h=Math.round(mins/60); if(h<24)return `Há ${h} h`; return formatDate(iso); }
-function escapeHtml(v='') { return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-function clamp(v,min,max){return Math.min(max,Math.max(min,v))} function delay(ms){return new Promise(r=>setTimeout(r,ms))}
-
-window.addEventListener('beforeunload', stopCamera);
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-renderAll();

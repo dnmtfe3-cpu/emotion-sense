@@ -47,7 +47,7 @@ function addHeadLink(rel,href,id){
 function showFatal(message){
   const app=document.getElementById('app');
   if(!app) return;
-  app.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#FAF9FC;color:#242238;text-align:center"><div><img src="icon-512.png?v=15" alt="Emotion Sense" style="width:82px;height:82px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#777489;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#6945E6;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
+  app.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#FAF9FC;color:#242238;text-align:center"><div><img src="icon-192.png?v=15" alt="Emotion Sense" style="width:82px;height:82px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#777489;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#6945E6;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
 }
 
 function showNonBlockingNotice(message){

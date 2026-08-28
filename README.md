@@ -1,41 +1,30 @@
 # Emotion Sense
 
-Protótipo mobile-first inspirado na mesma estrutura visual e de navegação usada no Hydra Agro, adaptado para acompanhamento de sinais faciais e check-ins de bem-estar.
+Aplicativo mobile-first para check-ins de bem-estar e acompanhamento de sinais faciais com câmera.
+
+## Interface
+
+- Tipografia principal: **DM Sans** — escolhida para deixar a experiência mais calma, serena e limpa.
+- Fluxo inicial: **Splash → Boas-vindas → Criar conta / Entrar → Home**.
+- Navegação principal: **Início / Analisar / Histórico / Perfil**.
 
 ## O que já funciona
 
-- Bottom navigation: **Início / Analisar / Histórico / Perfil**.
-- Perfil com nome, e-mail, foto e preferências salvos em `localStorage`.
+- Splash animada do Emotion Sense.
+- Boas-vindas com entrada e criação de conta.
+- Conta local de protótipo com senha armazenada como hash SHA-256 no dispositivo.
+- Sessão local e botão de sair da conta.
+- Perfil com nome, e-mail e foto.
 - Câmera frontal com `getUserMedia`.
-- Integração com **MediaPipe Face Landmarker** (`@mediapipe/tasks-vision@1.0.1`) para acompanhar blendshapes faciais.
-- Leitura de 10 segundos com média de sinais de sobrancelhas, olhos, boca e sorriso.
-- Resultado exibido como **ativação facial estimada**, sem chamar isso de diagnóstico ou previsão de ansiedade.
-- Check-in do próprio usuário para dar contexto à leitura.
+- MediaPipe Face Landmarker para acompanhar blendshapes faciais.
+- Sense Scan de 10 segundos.
+- Resultado apresentado como **ativação facial estimada**, sem diagnóstico de ansiedade ou previsão de crise.
+- Check-in manual para contextualizar a leitura.
 - Histórico local de scans e check-ins.
-- PWA básico com manifest e service worker.
+- PWA básico com service worker.
 
-## Rodar localmente
+## Importante
 
-A câmera exige contexto seguro. Em desenvolvimento, `localhost` funciona.
+A autenticação atual é somente para o protótipo e funciona no próprio dispositivo. Antes de publicar como produto real, deve ser substituída por autenticação e banco de dados no servidor.
 
-```bash
-python3 -m http.server 4173
-```
-
-Abra `http://localhost:4173` a partir da pasta do projeto.
-
-Também pode ser hospedado diretamente como site estático no Vercel. Em produção use HTTPS para acesso à câmera.
-
-## Como a análise funciona
-
-O app usa o Face Landmarker para obter blendshapes. O índice mostrado combina ativações de alguns movimentos do rosto para criar um indicador visual de **atividade facial**. Ele não é um instrumento médico e não deve ser interpretado como probabilidade de crise, ansiedade ou diagnóstico.
-
-Os frames de câmera não são adicionados ao histórico. Nesta versão, o histórico guarda somente números resumidos e o check-in escolhido pelo usuário.
-
-## Próximos passos recomendados
-
-1. Migrar o estado local para autenticação + banco real.
-2. Criar uma linha de base individual por usuário antes de comparar padrões.
-3. Validar qualquer heurística de bem-estar com profissionais da área antes de apresentar como recurso de saúde.
-4. Adicionar notificações e widgets para check-ins sem precisar navegar pelo app.
-5. Se virar APK com Capacitor, revisar permissões de câmera e política de privacidade.
+O Emotion Sense não é instrumento médico. A análise facial não deve ser apresentada como diagnóstico, previsão de crise ou certeza sobre o estado emocional de alguém.

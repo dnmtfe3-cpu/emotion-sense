@@ -4,7 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const androidRoot = path.join(root, 'android', 'app', 'src', 'main');
 const manifestPath = path.join(androidRoot, 'AndroidManifest.xml');
-const iconSource = path.join(root, 'icon-512.png');
+const iconSource = path.join(root, 'icon-192.png');
 const iconDir = path.join(androidRoot, 'res', 'drawable-nodpi');
 const iconTarget = path.join(iconDir, 'emotion_icon.png');
 

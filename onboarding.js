@@ -46,7 +46,7 @@ function showOnboarding(user,profile){
   overlay.id='es-onboarding';
   overlay.innerHTML=`
     <section class="es-onboard-sheet" role="dialog" aria-modal="true" aria-labelledby="es-onboard-title">
-      <div class="es-onboard-logo"><img src="icon.svg" alt=""></div>
+      <div class="es-onboard-logo"><img src="icon-192.png" alt=""></div>
       <span class="es-onboard-kicker">SEU EMOTION SENSE</span>
       <h2 id="es-onboard-title">Só falta deixar com a sua cara.</h2>
       <p class="es-onboard-copy">Essas escolhas ajustam seu acompanhamento. Você pode continuar usando check-ins mesmo sem liberar a câmera.</p>

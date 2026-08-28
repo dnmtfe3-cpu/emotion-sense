@@ -4,7 +4,7 @@ prepareBrand();
 
 (async function boot(){
   try{
-    await import('./app-core.js?v=15');
+    await import('./app-core.js?v=16');
   }catch(error){
     console.error('Emotion Sense core error',error);
     showFatal('Não consegui carregar as funções do app. Recarregue a página.');
@@ -12,7 +12,7 @@ prepareBrand();
   }
 
   try{
-    await import('./app-main.js?v=15');
+    await import('./app-main.js?v=16');
   }catch(error){
     console.error('Emotion Sense auth error',error);
     document.body.classList.remove('es-gate');
@@ -22,8 +22,8 @@ prepareBrand();
   }
 
   Promise.allSettled([
-    import('./cohesion.js?v=15'),
-    import('./onboarding.js?v=15')
+    import('./cohesion.js?v=16'),
+    import('./onboarding.js?v=16')
   ]).then(results=>results.forEach(result=>{
     if(result.status==='rejected') console.error('Emotion Sense optional module error',result.reason);
   }));
@@ -32,9 +32,9 @@ prepareBrand();
 function prepareBrand(){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.content='#6945E6';
-  addHeadLink('stylesheet','./brand.css?v=15','es-brand-css');
-  addHeadLink('icon','./favicon.ico?v=15','es-favicon');
-  addHeadLink('apple-touch-icon','./apple-touch-icon.png?v=15','es-apple-icon');
+  addHeadLink('stylesheet','./brand.css?v=16','es-brand-css');
+  addHeadLink('icon','./favicon.ico?v=16','es-favicon');
+  addHeadLink('apple-touch-icon','./apple-touch-icon.png?v=16','es-apple-icon');
 }
 
 function addHeadLink(rel,href,id){
@@ -47,7 +47,7 @@ function addHeadLink(rel,href,id){
 function showFatal(message){
   const app=document.getElementById('app');
   if(!app) return;
-  app.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#FAF9FC;color:#242238;text-align:center"><div><img src="icon-192.png?v=15" alt="Emotion Sense" style="width:82px;height:82px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#777489;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#6945E6;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
+  app.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:DM Sans,system-ui,sans-serif;background:#FAF9FC;color:#242238;text-align:center"><div><img src="logo-full.png?v=16" alt="Emotion Sense" style="width:190px;height:190px;object-fit:contain;margin-bottom:18px"><h1 style="font-size:22px;margin:0 0 8px">Algo não carregou</h1><p style="font-size:13px;line-height:1.5;color:#777489;max-width:280px;margin:0 auto 16px">${message}</p><button onclick="location.reload()" style="border:0;border-radius:14px;background:#6945E6;color:white;padding:13px 18px;font-weight:700">Tentar novamente</button></div></div>`;
 }
 
 function showNonBlockingNotice(message){

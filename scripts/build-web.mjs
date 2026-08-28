@@ -19,7 +19,8 @@ const files = [
   'favicon.ico',
   'favicon-32.png',
   'apple-touch-icon.png',
-  'icon-192.png'
+  'icon-192.png',
+  'logo-full.png'
 ];
 
 await rm(out, { recursive: true, force: true });
